@@ -4,6 +4,29 @@
         <name>WebAPIVersionDemo</name>
     </assembly>
     <members>
+        <member name="T:WebAPIVersionDemo.Controllers.IpRateLimitController">
+            <summary>
+            IP限制控制器
+            </summary>
+        </member>
+        <member name="M:WebAPIVersionDemo.Controllers.IpRateLimitController.#ctor(Microsoft.Extensions.Options.IOptions{AspNetCoreRateLimit.IpRateLimitOptions},AspNetCoreRateLimit.IIpPolicyStore)">
+            <summary>
+            
+            </summary>
+            <param name="optionsAccessor"></param>
+            <param name="ipPolicyStore"></param>
+        </member>
+        <member name="M:WebAPIVersionDemo.Controllers.IpRateLimitController.Get">
+            <summary>
+            
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:WebAPIVersionDemo.Controllers.IpRateLimitController.Post(AspNetCoreRateLimit.IpRateLimitPolicy)">
+            <summary>
+            
+            </summary>
+        </member>
         <member name="F:WebAPIVersionDemo.Startup.provider">
             <summary>
             Api版本提者信息

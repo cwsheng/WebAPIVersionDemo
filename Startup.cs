@@ -1,5 +1,7 @@
+using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
@@ -11,6 +13,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 using System.Threading.Tasks;
 
 namespace WebAPIVersionDemo
@@ -32,7 +36,29 @@ namespace WebAPIVersionDemo
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
+            //需要从加载配置文件appsettings.json
+            services.AddOptions();
+            //需要存储速率限制计算器和ip规则
+            services.AddMemoryCache();
+
+            //从appsettings.json中加载常规配置
+            services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
+
+            //从appsettings.json中加载Ip规则
+            services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
+
+            //注入计数器和规则存储
+            services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+            services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+
+            services.AddControllers().AddJsonOptions(cfg =>
+            {
+                cfg.JsonSerializerOptions.Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+            });
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            //配置（解析器、计数器密钥生成器）
+            services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
             //根据需要设置，以下内容
             services.AddApiVersioning(apiOtions =>
@@ -45,16 +71,16 @@ namespace WebAPIVersionDemo
                 apiOtions.DefaultApiVersion = new ApiVersion(1, 0);
                 //支持MediaType、Header、QueryString 设置版本号;缺省为QueryString设置版本号
                 apiOtions.ApiVersionReader = ApiVersionReader.Combine(
-                            new MediaTypeApiVersionReader("api-version"),
-                            new HeaderApiVersionReader("api-version"),
-                            new QueryStringApiVersionReader("api-version"),
-                            new UrlSegmentApiVersionReader());
+                                new MediaTypeApiVersionReader("api-version"),
+                                new HeaderApiVersionReader("api-version"),
+                                new QueryStringApiVersionReader("api-version"),
+                                new UrlSegmentApiVersionReader());
             });
 
 
             services.AddVersionedApiExplorer(option =>
             {
-                option.GroupNameFormat = "'v'VVV";
+                option.GroupNameFormat = "接口：'v'VVV";
                 option.AssumeDefaultVersionWhenUnspecified = true;
             });
 
@@ -102,6 +128,10 @@ namespace WebAPIVersionDemo
             app.UseRouting();
 
             app.UseAuthorization();
+
+            app.UseIpRateLimiting();
+
+            //app.UseClientRateLimiting();
 
             app.UseEndpoints(endpoints =>
             {
